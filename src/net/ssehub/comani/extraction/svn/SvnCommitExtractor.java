@@ -135,8 +135,14 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
      * @throws ExtractionSetupException if setting-up the necessary elements of this extractor failed
      */
     private void prepare() throws ExtractionSetupException {
-        // TODO check if SVN is installed and throw exception otherwise
         processUtilities = ProcessUtilities.getInstance();
+        // Check if SVN is installed and available
+        ExecutionResult executionResult = processUtilities.executeCommand("svn --version", null);
+        if (!executionResult.executionSuccessful()) {
+            throw new ExtractionSetupException("Testing SVN availability failed.\n" 
+                    + executionResult.getErrorOutputData());
+        }
+        // Check if the maximum number of allowed process executions attempts is defined
         String maxSvnCommandAttemptsString = extractionProperties.getProperty(PROPERTY_MAX_ATTEMPTS);
         if (maxSvnCommandAttemptsString == null) {
             maxSvnCommandAttempts = 1;
