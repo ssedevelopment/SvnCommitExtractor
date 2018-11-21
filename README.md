@@ -1,8 +1,13 @@
 # SvnCommitExtractor
 This [ComAnI](https://github.com/CommitAnalysisInfrastructure/ComAnI) plug-in realizes an extractor for extracting commits from SVN repositories and providing them as input to a ComAnI analyzer. It supports the following extraction variants:
-- **Full repository extraction**, which performs the extraction of all commits of a software repository. This requires the definition of the location of the target repository as part of the configuration file.
-- **Partial repository extraction**, which performs the extraction of a predefined set of commits. Besides the location of the target repository, this requires the specification of an additional file, which contains a list of unique commit numbers (or hashes). Each line of this commit list file must contain exactly one commit number. Further, the author of the commit list file must ensure that the commit numbers specify commits of the target repository. The usage of a commit list file requires its definition in the configuration file as follows: `extraction.commit_list = <path>/<to>/commitlist-file`
+- **Full repository extraction**, which performs the extraction of all commits of a software repository. This requires the definition of the location of the target repository as part of the configuration file using the parameter `extraction.input`.
+- **Partial repository extraction**, which performs the extraction of a predefined set of commits. Besides the location of the target repository, this requires the specification of an additional file, which contains a list of unique commit numbers, e.g., "r23". Each line of this commit list file must contain exactly one commit number. Further, the author of the commit list file must ensure that the commit numbers specify commits of the target repository. The usage of a commit list file requires its definition in the configuration file as follows: `extraction.commit_list = <path>/<to>/commitlist-file`
 - **Single commit extraction**, in which the content of a single commit can be passed on the command line as an input. Therefore, the infrastructure has to be executed using the `-i` option followed by the commit information, which is terminated by a last line containing the string “!q!”.
+
+Depending on the extraction variant, this extractor executes the following SVN commands:
+- `svn log -q`: Prints all revisions of the current branch
+- `svn log -q -<REVISION>`: Prints the log of a particular revision; `<REVISION>` will be replaced by a particular revision number, like "r78"
+- `svn diff -x -U100000 -c -<REVISION>`: Prints the revision information (number and date), the content of the changed files (100.000 lines of context including renamed files), and the changes to these files; `<REVISION>` will be replaced by a particular revision number, like "r78"
 
 *Main class name:* `net.ssehub.comani.extraction.svn.SvnCommitExtractor`
 
