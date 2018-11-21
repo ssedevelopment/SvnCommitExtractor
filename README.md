@@ -1,22 +1,36 @@
 # SvnCommitExtractor
-ComAnI plug-in for extracting SVN commits
+This [ComAnI](https://github.com/CommitAnalysisInfrastructure/ComAnI) plug-in realizes an extractor for extracting commits from SVN repositories and providing them as input to a ComAnI analyzer. It supports the following extraction variants:
+- **Full repository extraction**, which performs the extraction of all commits of a software repository. This requires the definition of the location of the target repository as part of the configuration file.
+- **Partial repository extraction**, which performs the extraction of a predefined set of commits. Besides the location of the target repository, this requires the specification of an additional file, which contains a list of unique commit numbers (or hashes). Each line of this commit list file must contain exactly one commit number. Further, the author of the commit list file must ensure that the commit numbers specify commits of the target repository. The usage of a commit list file requires its definition in the configuration file as follows: `extraction.commit_list = <path>/<to>/commitlist-file`
+- **Single commit extraction**, in which the content of a single commit can be passed on the command line as an input. Therefore, the infrastructure has to be executed using the `-i` option followed by the commit information, which is terminated by a last line containing the string “!q!”.
 
-## Requirements
-SVN needs to be installed
+*Main class name:* `net.ssehub.comani.extraction.svn.SvnCommitExtractor`
 
-## Support
-Operating system: all
+*Support:*
+- Operating system: all
+- Version control system: “svn”
 
-Version control system: "svn"
+## Installation
+Download the [SvnCommitExtractor.jar](/release/SvnCommitExtractor.jar) file from the release directory and save it to the ComAnI plug-ins directory on your machine. This directory is the one specified as `core.plugins_dir` in the configuration file of a particular ComAnI instance.
 
-## Plug-in-specific Configuration Parameters
-```Properties
+*Requirements:*
+- The [ComAnI infrastructure](https://github.com/CommitAnalysisInfrastructure/ComAnI) has to be installed to execute this plug-in as the extractor of a particular ComAnI instance
+- [SVN](https://subversion.apache.org/) has to be installed and globally executable
+
+## Execution
+This plug-in is not a standalone tool, but only executable as the extractor of a particular ComAnI instance. Therefore, it has to be defined in the configuration file via its fully qualified main class name as follows:
+
+`extraction.extractor = net.ssehub.comani.extraction.svn.SvnCommitExtractor`
+
+*Plug-in-specific configuration parameter(s):*
+
 A positive integer value defining the maximum number of allowed attempts to execute the same SVN command.
 Multiple attempts may be necessary as SVN commands trigger calls to the base repository, which may only be
 available via network and, hence, may result in (temporal) unavailability. The definition of this property
 is optional as the default maximum number of allowed attempts is 1 guaranteeing the execution of each SVN
 command at least once.
 
+```Properties
 Type: optional
 Default value: 1
 Related parameters: none
