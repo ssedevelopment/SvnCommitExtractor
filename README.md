@@ -15,6 +15,8 @@ Depending on the extraction variant, this extractor executes the following SVN c
 - Operating system: all
 - Version control system: “svn”
 
+For more information on how to use ComAnI and its plug-ins, we recommend reading the [ComAnI Guide](https://github.com/CommitAnalysisInfrastructure/ComAnI/blob/master/guide/ComAnI_Guide.pdf).
+
 ## Installation
 Download the [SvnCommitExtractor.jar](/release/SvnCommitExtractor.jar) file from the release directory and save it to the ComAnI plug-ins directory on your machine. This directory is the one specified as `core.plugins_dir` in the configuration file of a particular ComAnI instance.
 
