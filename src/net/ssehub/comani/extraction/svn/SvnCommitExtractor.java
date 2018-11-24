@@ -43,39 +43,43 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
     private static final String ID = "SvnCommitExtractor";
     
     /**
-     * The simple SVN log command, which can be used for printing all or single revisions with an arbitrary amount of
-     * information. This command is usually combined with additional options to print the desired amount of information
-     * for a particular (set of) revision(s).
-     * 
-     * @see SvnCommitExtractor#SVN_ALL_REVISIONS_COMMAND
-     * @see SvnCommitExtractor#SVN_REVISION_LOG_COMMAND
+     * The command for printing the installed SVN version used to check whether SVN is installed during 
+     * {@link #prepare()}.<br>
+     * <br>
+     * Command: <code>svn --version</code>
      */
-    private static final String SVN_LOG_COMMAND = "svn log";
+    private static final String[] SVN_VERSION_COMMAND = {"svn", "--version"};
     
     /**
-     * The command for printing all revisions of the current branch. Each revision is printed in a single line, which
-     * contains the revision number, the author, and the date of the commit. The log lines of the revisions are
-     * separated by a single line of dashes.
-     * 
-     * <b>Note:</b> The alternative command "svn log -q -r 0:HEAD ^/" will print all revisions over all branches.
-     * However, revisions from branches other than the current one cannot be used for extraction as they point to other
-     * trunks, etc., which we would need to checkout first.
+     * The command for printing the commit header of a particular revision, which provides the revision number, author,
+     * date, and message. Therefore the particular revision number has to be appended, like "-r35".<br>
+     * <br>
+     * Command: <code>svn log</code>
      */
-    private static final String SVN_ALL_REVISIONS_COMMAND = SVN_LOG_COMMAND + " -q";
+    private static final String[] SVN_LOG_COMMAND = {"svn", "log"};
     
     /**
-     * The command for printing the log of a particular revision. The number of the revision must be appended, like
-     * "r78". The revision log is printed in a single line, which contains the revision number, the author, and the date
-     * of the commit. A leading and trailing line of dashes surrounds the log line.
+     * The command for printing either all available revisions of the current branch or a single available revision. The
+     * latter requires appending the particular revision number, like "-r35". Each revision is printed in a single line,
+     * which contains the revision number, the author, and the date of the commit. The log lines of the revisions are
+     * separated by a single line of dashes.<br>
+     * <br>
+     * Command: <code>svn log -q</code><br>
+     * <br>
+     * <b>Note:</b> The alternative command <code>svn log -q -r 0:HEAD ^/</code> will print all revisions over all
+     * branches. However, revisions from branches other than the current one cannot be used for extraction as they point
+     * to other trunks, etc., which we would need to checkout first.
      */
-    private static final String SVN_REVISION_LOG_COMMAND = SVN_ALL_REVISIONS_COMMAND + " -";
-    
+    private static final String[] SVN_REVISION_LOG_COMMAND = {"svn", "log", "-q"};
+   
     /**
      * The command for printing the revision information (number and date), the content of the changed files
-     * (100.000 lines of context including renamed files), and the changes to these files. The number of the commit, for
-     * which this information shall be printed, must be appended, like "r78". 
+     * (100.000 lines of context including renamed files), and the changes to these files. The number of the revision,
+     * for which this information shall be printed, must be appended, like "-r35".<br>
+     * <br>
+     * Command: <code>svn diff -x -U100000 -c</code>
      */
-    private static final String SVN_COMMIT_CHANGES_COMMAND = "svn diff -x -U100000 -c -";
+    private static final String[] SVN_COMMIT_CHANGES_COMMAND = {"svn", "diff", "-x", "-U100000", "-c"};
     
     /**
      * The string identifying the start of a diff header in a commit. The first line of the diff header starts with this
@@ -137,7 +141,7 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
     private void prepare() throws ExtractionSetupException {
         processUtilities = ProcessUtilities.getInstance();
         // Check if SVN is installed and available
-        ExecutionResult executionResult = processUtilities.executeCommand("svn --version", null);
+        ExecutionResult executionResult = processUtilities.executeCommand(SVN_VERSION_COMMAND, null);
         if (!executionResult.executionSuccessful()) {
             throw new ExtractionSetupException("Testing SVN availability failed.\n" 
                     + executionResult.getErrorOutputData());
@@ -162,7 +166,7 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
     public boolean extract(File repository) {
         logger.log(ID, "Full extraction of all available revisions in the repository", null, MessageType.DEBUG);
         boolean extractionSuccessful = false;
-        String revisionsLog = executeSvnCommand(SVN_ALL_REVISIONS_COMMAND, repository);
+        String revisionsLog = executeSvnCommand(SVN_REVISION_LOG_COMMAND, repository);
         if (revisionsLog != null) {
             // We assume that the standard output stream of the process executed above contains the revision numbers
             Map<String, String> revisionNumbers = getRevisionNumbers(revisionsLog);
@@ -171,12 +175,14 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
             } else {
                 logger.log(ID, "Full extraction of all available revisions from repository \"" 
                         + repository.getAbsolutePath() + "\" failed", "Retrieving revisions log using \"" 
-                        + SVN_ALL_REVISIONS_COMMAND + "\" returned no revision numbers", MessageType.ERROR);
+                        + processUtilities.getCommandString(SVN_REVISION_LOG_COMMAND) 
+                        + "\" returned no revision numbers", MessageType.ERROR);
             }
         } else {
-            logger.log(ID, "Full extraction of all available revisions from repository \"" 
+            logger.log(ID, "Full extraction of all available revisions from repository \""
                     + repository.getAbsolutePath() + "\" failed", "Retrieving revisions log using \"" 
-                    + SVN_ALL_REVISIONS_COMMAND + "\" returned no revision numbers", MessageType.ERROR);
+                    + processUtilities.getCommandString(SVN_REVISION_LOG_COMMAND) 
+                    + "\" returned no revision numbers", MessageType.ERROR);
         }
         return extractionSuccessful;
     }
@@ -191,9 +197,11 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
                 MessageType.DEBUG);
         Map<String, String> revisionNumbers = new HashMap<String, String>();
         String revisionLog = null;
+        String[] command = null;
         for (String revisionNumberString : commitList) {
             if (revisionNumberString.matches("^r\\d+")) {
-                revisionLog = executeSvnCommand(SVN_REVISION_LOG_COMMAND + revisionNumberString, repository);
+                command = processUtilities.extendCommand(SVN_REVISION_LOG_COMMAND, "-" + revisionNumberString);
+                revisionLog = executeSvnCommand(command, repository);
                 if (revisionLog != null) {
                     // We assume that the standard output stream of the process executed above contains the revision log
                     Map<String, String> revisionNumber = getRevisionNumbers(revisionLog);
@@ -202,8 +210,8 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
                     } else {
                         logger.log(ID, "Selective extraction of revision \"" + revisionNumberString 
                                 + "\" (based on commit list file) failed", "Retrieving revision log using \"" 
-                                + SVN_REVISION_LOG_COMMAND + revisionNumberString + "\" returned no revision number" 
-                                + "; this revision is skipped", MessageType.WARNING);
+                                + processUtilities.getCommandString(command) 
+                                + "\" returned no revision number; this revision is skipped", MessageType.WARNING);
                     }
                 } else {
                     logger.log(ID, "Retrieving revision log failed",
@@ -220,8 +228,8 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
         } else {
             logger.log(ID, "Selective extraction from repository \"" + repository.getAbsolutePath() 
                     + "\" based on commit list file failed", "Retrieving revision logs using \"" 
-                    + SVN_REVISION_LOG_COMMAND + "r<NUMBER>\" for the specified revisions returned no revision numbers",
-                    MessageType.ERROR);
+                    + processUtilities.getCommandString(SVN_REVISION_LOG_COMMAND) 
+                    + " -r<NUMBER>\" for the specified revisions returned no revision numbers", MessageType.ERROR);
         }
         return extractionSuccessful;
     }
@@ -258,13 +266,15 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
         Set<String> revisionNumbersSet = revisionNumbers.keySet();
         logger.log(ID, "Extracting " + revisionNumbersSet.size() + " revisions from \"" + repository.getAbsolutePath(),
                 null, MessageType.DEBUG);
+        String[] command = null;
         String standardOutputString = null;
         String[] commitHeader = new String[0];
         Commit commit;
         for (String revisionNumber : revisionNumbersSet) {
             logger.log(ID, "Extracting revision \"" + revisionNumber + "\"", null, MessageType.DEBUG);
             // Retrieve the commit header information, like the author, date, and commit message
-            standardOutputString = executeSvnCommand(SVN_LOG_COMMAND + " -" + revisionNumber, repository);
+            command = processUtilities.extendCommand(SVN_LOG_COMMAND, "-" + revisionNumber);
+            standardOutputString = executeSvnCommand(command, repository);
             if (standardOutputString != null) {
                 commitHeader = createCommitHeader(standardOutputString);
             } else {
@@ -272,7 +282,8 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
                         "Creating commit without commit header information", MessageType.WARNING);
             }
             // Retrieve the commit information, like the changed files
-            standardOutputString = executeSvnCommand(SVN_COMMIT_CHANGES_COMMAND + revisionNumber, repository);
+            command = processUtilities.extendCommand(SVN_COMMIT_CHANGES_COMMAND, "-" + revisionNumber);
+            standardOutputString = executeSvnCommand(command, repository);
             if (standardOutputString != null) {
                 commit = createCommit(revisionNumber, revisionNumbers.get(revisionNumber), commitHeader,
                         standardOutputString);
@@ -317,9 +328,7 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
      * @param commitHeader the commit header information lines as provided by {@link #createCommitHeader(String)}
      * @param commitContent the content of the commit as provided by executing the {@link #SVN_COMMIT_CHANGES_COMMAND}
      *        command, which does not include any commit information, like the author or message
-     * @return a new commit based on the given information; note that due to the {@link #SVN_COMMIT_CHANGES_COMMAND}
-     *         command the commit contains an empty commit header
-     * 
+     * @return a new commit based on the given information
      */
     private Commit createCommit(String commitNumber, String commitDate, String[] commitHeader, String commitContent) {
         List<ChangedArtifact> changedArtifacts = null;
@@ -403,7 +412,7 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
     
     /**
      * Extracts the revisions and their commit date from the given revision log as returned by the
-     * {@link #SVN_ALL_REVISIONS_COMMAND} or {@link #SVN_REVISION_LOG_COMMAND} command.
+     * {@link #SVN_REVISION_LOG_COMMAND} command.
      * 
      * @param revisionLog the string containing the revision log; should never be <code>null</code>
      * @return the map of revision numbers (keys) and their commit date (value) as provided by the revision log; never
@@ -486,18 +495,18 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
 
     /**
      * Executes the given (SVN) command at the location of the given repository using
-     * {@link ProcessUtilities#executeCommand(String, File)}. If the execution fails, the given number of allowed
-     * attempts defines how often this method will retry executing the command.
+     * {@link ProcessUtilities#executeCommand(String[], File)}. If the execution fails, the 
+     * {@link #maxSvnCommandAttempts} number defines how often this method will retry executing the command.
      * 
      * @param command the command to execute at the location of the given repository, which is typically one of 
-     *        {@link #SVN_LOG_COMMAND}, {@link #SVN_ALL_REVISIONS_COMMAND}, {@link #SVN_REVISION_LOG_COMMAND},
-     *        or {@link #SVN_COMMIT_CHANGES_COMMAND}; should never be <code>null</code>
+     *        {@link #SVN_LOG_COMMAND}, {@link #SVN_REVISION_LOG_COMMAND}, or {@link #SVN_COMMIT_CHANGES_COMMAND};
+     *        should never be <code>null</code>
      * @param repository the (SVN) repository at which the given command will be executed; can be <code>null</code>
      *        if the command should be executed in the same directory as the entire infrastructure
      * @return a string containing the standard output data of the process, which executed the given command; may be
      *         <code>null</code> if executing the command failed or no standard output data was available
      */
-    private String executeSvnCommand(String command, File repository) {
+    private String executeSvnCommand(String[] command, File repository) {
         String standardOutputString = null;
         ExecutionResult executionResult = null;
         int attemptCounter = 1;
