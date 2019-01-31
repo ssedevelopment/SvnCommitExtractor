@@ -32,7 +32,7 @@ import net.ssehub.comani.utility.ProcessUtilities.ExecutionResult;
 /**
  * The main class of this extractor. It extracts commits from SVN repositories on any platform.
  * 
- * @author Christian Kröher
+ * @author Christian Kroeher
  *
  */
 public class SvnCommitExtractor extends AbstractCommitExtractor {

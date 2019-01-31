@@ -13,7 +13,7 @@
 /**
  * This package contains the core class of this extractor.
  * 
- * @author Christian Kröher
+ * @author Christian Kroeher
  *
  */
 package net.ssehub.comani.extraction.svn;
