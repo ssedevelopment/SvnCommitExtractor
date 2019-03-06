@@ -1,0 +1,31 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	
+	<parent>
+	    <groupId>net.ssehub.comani</groupId>
+	    <artifactId>comani-extractors</artifactId>
+	    <version>1.0.0</version>
+	</parent>
+
+	<groupId>net.ssehub.comani.extractors</groupId>
+	<artifactId>comani-extractor-svn</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>SvnCommitExtractor</name>
+	<description>ComAnI plug-in for extracting SVN commits </description>
+	<packaging>jar</packaging>
+
+	<repositories>
+		<repository>
+		    <id>mvn-repo</id>
+		    <url>https://raw.githubusercontent.com/Maze7/comani-mvn-repo/master</url>
+		    <releases>
+		    	<enabled>true</enabled>
+		    </releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+</project>
