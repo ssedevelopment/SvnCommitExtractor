@@ -44,7 +44,7 @@ Related parameters: none
 extraction.svn_extractor.max_attempts = <Number>
 ```
 
-*Single commit extraction*
+*Single commit extraction:*
 
 The ComAnI infrastructure offers the single commit extraction as one of three different extraction variants (read the [ComAnI Guide](https://github.com/CommitAnalysisInfrastructure/ComAnI/blob/master/guide/ComAnI_Guide.pdf) for more information). When using the SvnCommitExtractor, the required format of the string representing the single commit must be as illustrated by the following example:
 
