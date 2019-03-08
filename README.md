@@ -43,6 +43,32 @@ Default value: 1
 Related parameters: none
 extraction.svn_extractor.max_attempts = <Number>
 ```
+
+*Single commit extraction*
+
+The ComAnI infrastructure offers the single commit extraction as one of three different extraction variants (read the [ComAnI Guide](https://github.com/CommitAnalysisInfrastructure/ComAnI/blob/master/guide/ComAnI_Guide.pdf) for more information). When using the SvnCommitExtractor, the required format of the string representing the single commit must be as illustrated by the following example:
+
+```
+r3
+Index: readme.txt
+===================================================================
+--- readme.txt	(nonexistent)
++++ readme.txt	(revision 2)
+@@ -0,0 +1,5 @@
++This repository hosts some files to check whether the GitCommitExtractor works as expected.
++These files neither represent a particular software nor do they have any relations.
++These files are only used for testing correct extraction of commits.
++
++This line was introduced on a new branch.
+!q!
+```
+
+The first line in the example above is optional and defines the commit (revision) number of the commit. It must be defined exactly as illustrated: `r<NUMBER>`. If this line is not available, the commit extractor will use the default id `<no_id>` as commit id.
+
+The following lines represent the content of the actual commit as provided by the SVN command `svn diff –x –U100000 –c –r<NUMBER>`, where `<NUMBER>` identifies the respective revision. Note that there is no further information, like the commit message. This content starts directly with the first changed file `Index: ...`. The commit extractor expects this either as the first line (if the optional revision above is not available) or as the second line.
+
+The last line terminates the commit string as required by the infrastructure. This line must only contain `!q!`. All lines after this termination-string will be ignored.
+
 ## License
 This project is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0.html).
 
