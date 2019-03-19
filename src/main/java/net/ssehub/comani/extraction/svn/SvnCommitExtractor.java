@@ -241,7 +241,27 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
     public boolean extract(String commit) {
         logger.log(ID, "Extraction (parsing) of single commit", null, MessageType.DEBUG);
         boolean extractionSuccessful = false;
-        Commit commitObject = createCommit("<no_id>", "<no_date>", new String[0], commit);
+        // Get the commit id from the first line of the given commit string (if available)
+        String commitId = "<no_id>";
+        if (commit.startsWith("r")) {
+            int indexOfFirstLineBreak = commit.indexOf("\n");
+            if (indexOfFirstLineBreak > -1) {
+                try {                    
+                    int revisionNumber = Integer.parseInt(commit.substring(1, indexOfFirstLineBreak));
+                    // If this line is reached, the substring is a number, which defines the revision
+                    commitId = "r" + revisionNumber;
+                } catch (NumberFormatException e) {
+                    // First line does not contain "r<NUMBER>" representing the revision number of the given commit
+                    logger.log(ID, "Identifying the commit id failed", "The first line of the given string does not "
+                            + "exclusively contain \"r<REVISION>\"; using \"<no_id>\" as commit id",
+                            MessageType.WARNING);
+                }
+            }
+            // Exclude the first line indicating the revision number (or any non "Index: ..."-string)
+            commit = commit.substring(indexOfFirstLineBreak + 1);
+        }
+        // Create the commit object        
+        Commit commitObject = createCommit(commitId, "<no_date>", new String[0], commit);
         if (commitObject != null) {
             while (!commitQueue.addCommit(commitObject)) {
                 logger.log(ID, "Waiting to add commit to queue", null, MessageType.DEBUG);
