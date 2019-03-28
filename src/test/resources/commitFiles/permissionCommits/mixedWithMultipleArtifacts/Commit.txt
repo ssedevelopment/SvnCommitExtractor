@@ -1,0 +1,19 @@
+r1
+Index: test.sh
+===================================================================
+--- test.sh	(revision 5)
++++ test.sh	(revision 6)
+@@ -0,0 +1 @@
++hallo
+Index: test2.sh
+===================================================================
+--- test2.sh	(revision 5)
++++ test2.sh	(revision 6)
+
+Property changes on: test2.sh
+___________________________________________________________________
+Added: svn:executable
+## -0,0 +1 ##
++*
+\ No newline at end of property
+

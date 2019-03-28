@@ -1,0 +1,5 @@
+Index: dir1/fileDir2.txt
+===================================================================
+--- dir1/fileDir2.txt	(nonexistent)
++++ dir1/fileDir2.txt	(revision 2)
+@@ -0,0 +1 @@

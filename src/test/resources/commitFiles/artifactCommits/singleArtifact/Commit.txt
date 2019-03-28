@@ -1,0 +1,6 @@
+Index: file1.txt
+===================================================================
+--- file1.txt	(nonexistent)
++++ file1.txt	(revision 1)
+@@ -0,0 +1 @@
++this is a small file 

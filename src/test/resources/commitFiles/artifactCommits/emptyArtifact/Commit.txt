@@ -1,0 +1,6 @@
+r10000
+Index: dir1/fileDir1.txt
+===================================================================
+--- dir1/fileDir1.txt	(nonexistent)
++++ dir1/fileDir1.txt	(revision 2)
+@@ -0,0 +1 @@
