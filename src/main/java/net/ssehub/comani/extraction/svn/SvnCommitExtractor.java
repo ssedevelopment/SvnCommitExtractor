@@ -418,7 +418,12 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
                         }
                     } else {
                         artifactContentReached = commitContentLine.startsWith(DIFF_HEADER_END_PATTERN);
-                        changedArtifact.addDiffHeaderLine(commitContentLine);
+                        /*
+                         * The following line possibly cause a NullPointerException.
+                         * If the content doesn't start with DIFF_HEADER_START_PATTERN, 
+                         * the changedArtifact object is null during this execution
+                         */
+                        changedArtifact.addDiffHeaderLine(commitContentLine); 
                     }
                 }
                 if ((i + 1) == commitContentLines.length) {
