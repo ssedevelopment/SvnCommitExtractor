@@ -15,7 +15,7 @@ import net.ssehub.comani.utility.FileUtilities;
 /**
  * This class provides the common attributes and preparations for interactive mode based extractor tests.
  * 
- * @author spark
+ * @author Marcel
  */
 public abstract class AbstractInteractiveModeTests {
     
