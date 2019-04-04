@@ -88,6 +88,19 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
     private static final String DIFF_HEADER_START_PATTERN = "Index:";
     
     /**
+     * The string identifying the start of a property block for a changed artifact. The first line of this block starts
+     * with this string. 
+     */
+    private static final String DIFF_HEADER_PROPERTY_START_PATTERN = "Property changes on:";
+    
+    /**
+     * The string identifying the end of a property block for a changed artifact. 
+     * 
+     * @see #DIFF_HEADER_PROPERTY_START_PATTERN
+     */
+    private static final String DIFF_HEADER_PROPERTY_END_PATTERN = "##";
+    
+    /**
      * The string identifying the end of a diff header in a commit. The last line of the diff header starts with this
      * string. After that line, the content of the changed artifact described by the diff header as well as the actual
      * changes to the artifact are listed. 
@@ -116,7 +129,7 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
      * used if the user does not specify any other maximum number via the {@link #PROPERTY_MAX_ATTEMPTS} property.
      */
     private int maxSvnCommandAttempts;
-    
+
     /**
      * Constructs a new instance of this extractor, which extracts commits from SVN repositories on any platform.
      * 
@@ -369,8 +382,23 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
             logger.log(ID, "Commit number not available", "No commit created", MessageType.WARNING);
         }
         return new Commit(commitNumber, commitDate, commitHeader, changedArtifacts);
+    } 
+
+    /**
+     * Can be used to identify the actual extraction process.<br>
+     * ARTIFACT_CONTENT: currently the artifact content is extracted <br>
+     * ARTIFACT_DIFF_HEADER: currently the diff header of the artifact is extracted<br>
+     * ARTIFACT_PROPERTY: currently a optional property block is extracted <br>
+     * UNDEFINED: there is no specific extraction at the moment - search a new changed artifact<br>
+     * <br>
+     * Used only in {@link SvnCommitExtractor#createChangedArtifacts(String)}
+     */
+    private enum ExtractionMode {
+        ARTIFACT_CONTENT,
+        ARTIFACT_DIFF_HEADER,
+        ARTIFACT_PROPERTY,
+        UNDEFINED
     }
-    
     /**
      * Creates a list of {@link ChangedArtifact}s based on the given information.
      * 
@@ -380,54 +408,103 @@ public class SvnCommitExtractor extends AbstractCommitExtractor {
      * @return a list of changed artifacts; may be <code>null</code>, if parsing the commit content failed or no
      *         artifacts were changed by the commit
      */
+    //CHECKSTYLE:OFF // Ignore warning if method length is greater than 70 lines => comments are necessary. 
     private List<ChangedArtifact> createChangedArtifacts(String commitContent) {
+    //CHECKSTYLE:ON
         List<ChangedArtifact> changedArtifacts = null;
         String[] commitContentLines = commitContent.split("\n");
         if (commitContentLines.length > 1) {
-            String commitContentLine;
             changedArtifacts = new ArrayList<ChangedArtifact>();
             ChangedArtifact changedArtifact = null;
-            boolean artifactContentReached = false;
-            for (int i = 0; i < commitContentLines.length; i++) {
-                // Due to the SVN_COMMIT_CHANGES_COMMAND, the content directly starts with changed artifacts
+            ExtractionMode currentMode = ExtractionMode.UNDEFINED;
+            String commitContentLine;
+            int i = 0;
+            while (i < commitContentLines.length) {
                 commitContentLine = commitContentLines[i];
-                if (commitContentLine.startsWith(DIFF_HEADER_START_PATTERN)) {
-                    // Start of changed artifact; save the previous one to the list before creating a new one
-                    artifactContentReached = false;
-                    if (changedArtifact != null) {
-                        changedArtifacts.add(changedArtifact);
-                    }
-                    changedArtifact = new ChangedArtifact();
-                    String artifactPath = commitContentLine.substring(commitContentLine.indexOf(" ") + 1);
-                    changedArtifact.addArtifactPath(artifactPath);
-                    if (artifactPath.contains("/")) {
-                        changedArtifact.addArtifactName(artifactPath.substring(artifactPath.lastIndexOf("/") + 1));
-                    } else {
-                        changedArtifact.addArtifactName(artifactPath);
-                    }
-                    changedArtifact.addDiffHeaderLine(commitContentLine);
-                } else {
-                    if (artifactContentReached) {
-                        /*
-                         * In some cases SVN adds an additional line after the content of a changed artifact stating
-                         * "\ No newline at end of file". To avoid adding this line to the content of a changed
-                         * artifact, skip such lines.
-                         */
-                        if (!commitContentLine.startsWith("\\")) {
-                            changedArtifact.addContentLine(commitContentLine);
+                /*
+                 * In some cases SVN adds an additional line after the content of a changed artifact stating
+                 * "\ No newline at end of file". To avoid adding this line to the content of a changed
+                 * artifact, skip such lines.
+                 */
+                if (!commitContentLine.startsWith("\\ No newline at end of")) {
+                    switch (currentMode) {
+                    case ARTIFACT_DIFF_HEADER:
+                        if (commitContentLine.startsWith(DIFF_HEADER_END_PATTERN)) {
+                            currentMode = ExtractionMode.ARTIFACT_CONTENT;
                         }
-                    } else {
-                        artifactContentReached = commitContentLine.startsWith(DIFF_HEADER_END_PATTERN);
+                        changedArtifact.addDiffHeaderLine(commitContentLine); 
+                        break;
+                    case ARTIFACT_PROPERTY:
+                        /*
+                         * The property block is always the last information for a artifact. 
+                         * If this block comes to an end the UNDEFINED mode will start to search for a new artifact.
+                         */
+                        if (commitContentLine.startsWith(DIFF_HEADER_PROPERTY_END_PATTERN)) {
+                            currentMode = ExtractionMode.UNDEFINED;
+                            /*
+                             * After the DIFF_HEADER_PROPERTY_END_PATTERN there is an additional line like
+                             * "+*" or "-*". Maybe this lines will be necessary one day.
+                             */
+                            changedArtifact.addDiffHeaderLine(commitContentLines[(i + 1)]);
+                        }
                         changedArtifact.addDiffHeaderLine(commitContentLine);
+                        break;
+                    case ARTIFACT_CONTENT:
+                        if (commitContentLine.startsWith(DIFF_HEADER_PROPERTY_START_PATTERN)) {
+                            currentMode = ExtractionMode.ARTIFACT_PROPERTY;
+                            continue; // start immediately
+                        } else if (commitContentLine.startsWith(DIFF_HEADER_START_PATTERN)) {
+                            currentMode = ExtractionMode.UNDEFINED;
+                            continue; // start immediately
+                        }
+                        /*
+                         * In case there are property informations, an additional empty line is added between the
+                         * content and property block - ignore those empty lines.
+                         */
+                        if (!commitContentLine.isEmpty()) {
+                            changedArtifact.addContentLine(commitContentLine);
+                        } 
+                        break;
+                    case UNDEFINED:
+                    default:
+                        // Due to the SVN_COMMIT_CHANGES_COMMAND, the content directly starts with changed artifacts
+                        if (commitContentLine.startsWith(DIFF_HEADER_START_PATTERN)) {
+                            currentMode = ExtractionMode.ARTIFACT_DIFF_HEADER;
+                            // Start of changed artifact; save the previous one to the list before creating a new one
+                            if (changedArtifact != null) {
+                                changedArtifacts.add(changedArtifact);
+                            }
+                            changedArtifact = createNewArtifact(commitContentLine);
+                        }
+                        break;
                     }
                 }
-                if ((i + 1) == commitContentLines.length) {
-                    // End of changes, add last changed artifact to list
-                    changedArtifacts.add(changedArtifact);
-                }
+                i++;
             }
+            changedArtifacts.add(changedArtifact); // End of changes, add last changed artifact to list
         }
         return changedArtifacts;
+    }
+    
+    /**
+     * Creates a new ChangedArtifact and extracts all information from the given line.
+     * 
+     * @param commitContentLine the first line of a new changed artifact - by default this is a line which starts
+     * with {@link #DIFF_HEADER_START_PATTERN}
+     * @return a new ChangedArtifact where name and path are already set
+     */
+    private ChangedArtifact createNewArtifact(String commitContentLine) {
+        ChangedArtifact changedArtifact = new ChangedArtifact();
+        String artifactPath = commitContentLine.substring(commitContentLine.indexOf(" ") + 1);
+        changedArtifact.addArtifactPath(artifactPath);
+        if (artifactPath.contains("/")) {
+            changedArtifact.
+                addArtifactName(artifactPath.substring(artifactPath.lastIndexOf("/") + 1));
+        } else {
+            changedArtifact.addArtifactName(artifactPath);
+        }
+        changedArtifact.addDiffHeaderLine(commitContentLine);
+        return changedArtifact;
     }
     
     /**
