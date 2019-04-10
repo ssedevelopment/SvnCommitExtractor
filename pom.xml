@@ -19,7 +19,7 @@
 	<repositories>
 		<repository>
 		    <id>mvn-repo</id>
-		    <url>https://raw.githubusercontent.com/Maze7/comani-mvn-repo/master</url>
+		    <url>https://raw.githubusercontent.com/ssedevelopment/comani-mvn-repo/master</url>
 		    <releases>
 		    	<enabled>true</enabled>
 		    </releases>
