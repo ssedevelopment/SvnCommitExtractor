@@ -180,13 +180,11 @@ public class InteractiveModeArtifactContentTests extends AbstractInteractiveMode
                 new String[] {"ChangedArtifact_1_DiffHeader.txt", "ChangedArtifact_2_DiffHeader.txt"},
                 new String[] {"test.sh", "test2.sh"},
                 new String[] {"test.sh", "test2.sh"}
-            }, {
+            }
                 /**
                  * [Run 5]
                  * Test for a merge commit. TODO
-                 */
-            }
-            
+                 */    
         });
     }
 
