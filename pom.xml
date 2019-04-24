@@ -5,7 +5,7 @@
 	
 	<parent>
 	    <groupId>net.ssehub.comani</groupId>
-	    <artifactId>comani-extractors</artifactId>
+	    <artifactId>comani-project</artifactId>
 	    <version>1.0.0</version>
 	</parent>
 
@@ -15,6 +15,15 @@
 	<name>SvnCommitExtractor</name>
 	<description>ComAnI plug-in for extracting SVN commits </description>
 	<packaging>jar</packaging>
+
+	<dependencies>
+		<!-- Interfaces and main structure -->
+		<dependency>
+			<groupId>net.ssehub.comani</groupId>
+			<artifactId>comani-structure</artifactId>
+			<version>[1,)</version>
+		</dependency>
+	</dependencies>
 
 	<repositories>
 		<repository>
